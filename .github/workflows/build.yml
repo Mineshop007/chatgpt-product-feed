@@ -1,0 +1,53 @@
+name: Build ChatGPT product feed
+
+on:
+  schedule:
+    - cron: '20 2 * * *'   # daily, after the shop regenerates its Google Merchant feed (00:40 shop time)
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['build_feed.py', '.github/workflows/build.yml']
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: feed
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build feed from the public Google Merchant feed
+        run: |
+          python3 build_feed.py --out docs
+          touch docs/.nojekyll
+
+      - name: Commit the new snapshot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Feed snapshot $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
