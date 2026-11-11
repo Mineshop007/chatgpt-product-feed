@@ -11,7 +11,7 @@ Usage: build_feed.py --out DIR [--source URL_OR_PATH] [--min-items N]
 Writes DIR/mineshop-openai.jsonl and DIR/summary.json. Exits non-zero (keeping the last good
 deployment) when the source is unreadable or yields fewer than --min-items products.
 """
-import argparse, datetime, html, json, os, re, sys, urllib.request
+import argparse, datetime, gzip, html, json, os, re, sys, urllib.request
 import xml.etree.ElementTree as ET
 from decimal import Decimal
 from html.parser import HTMLParser
@@ -132,9 +132,13 @@ def main():
         print(json.dumps(counts), file=sys.stderr)
         sys.exit(2)
     os.makedirs(a.out, exist_ok=True)
-    with open(os.path.join(a.out, FEED_FILE), 'w', encoding='utf-8') as f:
-        for r in rows:
-            f.write(json.dumps(r, ensure_ascii=False) + '\n')
+    body = ''.join(json.dumps(r, ensure_ascii=False) + '\n' for r in rows).encode('utf-8')
+    with open(os.path.join(a.out, FEED_FILE), 'wb') as f:
+        f.write(body)
+    # ChatGPT's hosted-URL import takes .jsonl.gz (not plain .jsonl); mtime=0 keeps unchanged snapshots byte-identical.
+    with open(os.path.join(a.out, FEED_FILE + '.gz'), 'wb') as raw:
+        with gzip.GzipFile(filename='', mode='wb', fileobj=raw, mtime=0) as gz:
+            gz.write(body)
     counts['generated_at'] = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
     with open(os.path.join(a.out, 'summary.json'), 'w', encoding='utf-8') as f:
         json.dump(counts, f, indent=1)
