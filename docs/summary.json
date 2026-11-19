@@ -1,10 +1,10 @@
 {
  "source_items": 484,
  "mining_excluded": 291,
- "out_of_stock_excluded": 63,
+ "out_of_stock_excluded": 65,
  "no_brand_excluded": 15,
  "no_price_excluded": 0,
  "invalid_gtin_dropped": 0,
- "products": 109,
- "generated_at": "2026-11-18T02:28:22+00:00"
+ "products": 107,
+ "generated_at": "2026-11-19T02:27:54+00:00"
 }
